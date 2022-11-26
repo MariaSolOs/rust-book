@@ -7,20 +7,14 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn build(args: &[String]) -> Result<Self, &'static str> {
-        if args.len() != 3 && args.len() != 4 {
-            return Err("Invalid number of arguments.");
-        }
+    pub fn build(mut args: impl Iterator<Item = String>) -> Result<Self, &'static str> {
+        args.next();
 
         let (query_key, file_key, ignore_case_key) = ("query", "file", "ignore_case");
 
         let mut map = HashMap::new();
-        for (i, arg) in args.iter().enumerate() {
-            if i == 0 {
-                continue;
-            }
-
-            let arg: Vec<&str> = arg.split('=').collect();
+        for arg in args {
+            let arg = arg.split('=').collect::<Vec<_>>();
             if arg.len() != 2 {
                 return Err("Invalid argument.");
             }
@@ -35,7 +29,7 @@ impl Config {
                 return Err("Duplicate argument.");
             }
 
-            map.insert(k, v);
+            map.insert(k.to_string(), v.to_string());
         }
 
         let file_path = map
@@ -54,28 +48,19 @@ impl Config {
 }
 
 pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    let mut found = Vec::new();
-
-    for line in contents.lines() {
-        if line.contains(query) {
-            found.push(line);
-        }
-    }
-
-    found
+    contents
+        .lines()
+        .filter(|line| line.contains(query))
+        .collect()
 }
 
 pub fn search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
     let query = query.to_lowercase();
-    let mut found = Vec::new();
 
-    for line in contents.lines() {
-        if line.to_lowercase().contains(&query) {
-            found.push(line);
-        }
-    }
-
-    found
+    contents
+        .lines()
+        .filter(|line| line.to_lowercase().contains(&query))
+        .collect()
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
